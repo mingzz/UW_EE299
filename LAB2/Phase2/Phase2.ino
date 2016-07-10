@@ -36,8 +36,10 @@ void loop()
     lcd.clear();
     //  read up to 3 characters - put them into array b
     Serial.readBytesUntil('\n', b, 15);
+    // traverse
     for (int i = 0;i<15;i++)
     {
+      //  get operator
       if ( b[i]=='+'|| 
             b[i]=='-'||
             b[i]=='*'||
@@ -50,15 +52,18 @@ void loop()
         endPos=i;
       }
     }
+    // convert char to int
     x=CharToInt(0, opPos, x);
     y=CharToInt(opPos+1, endPos, y);
     op = b[opPos];
+    // print on monitor
     Serial.print(x);
     lcd.print(x);
     Serial.print(op);
     lcd.print(op);      
     Serial.println(y);
-    lcd.print(y);      
+    lcd.print(y);  
+    // get result    
     int result = Calc(x,y,op);
     Serial.print("The result is : "); 
     Serial.println(result);
@@ -69,6 +74,7 @@ void loop()
   }  
 }
 
+// calculate integar data
 int Calc(const int x, const int y, const char op)
 {
    if (op == '+')
@@ -81,6 +87,7 @@ int Calc(const int x, const int y, const char op)
                return x/y;
 }
 
+// an atoi() implementation, convert char to int
 int CharToInt(const int front, const int final, int target)
 {
   for(int i=front; i<final; i++)
@@ -90,6 +97,7 @@ int CharToInt(const int front, const int final, int target)
   return target;
 }
 
+// establish serial contact
 void establishContact() {
   while (Serial.available() <= 0) {
     Serial.println("0,0,0");   // send an initial string

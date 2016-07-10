@@ -30,16 +30,23 @@ void loop()
     lcd.clear();
     //  read up to 3 characters - put them into array b
     Serial.readBytesUntil('\n', b, 4);
+    // convert char to int
     x = b[0]-'0';
+    // print operand 1
     Serial.print(x);
     lcd.print(x);
     op = b[1];
+    // print operator
     Serial.print(op); 
-    lcd.print(op);     
+    lcd.print(op);  
+    // convert char to int   
     y = b[2]-'0'; 
+    // print operand 2
     Serial.println(y);
     lcd.print(y);      
+    // calculate
     int result = Calc(x,y,op);
+    // print
     lcd.print('=');
     Serial.print("The result is : "); 
     Serial.println(result);
@@ -49,6 +56,7 @@ void loop()
   }  
 }
 
+// calculate integar data
 int Calc(const int x, const int y, const char op)
 {
    if (op == '+')
@@ -60,6 +68,8 @@ int Calc(const int x, const int y, const char op)
         else if(op == '/')
                return x/y;
 }
+
+// establish serial contact
 void establishContact() {
   while (Serial.available() <= 0) {
     Serial.println("0,0,0");   // send an initial string
