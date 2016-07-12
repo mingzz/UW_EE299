@@ -7,10 +7,11 @@ struct Plot{
   char show;
 };
 Plot Map[4][4];
-int cx;
-int cy;
+int cx, cy;
+int ex, ey;
 int timer1_counter;
 int count;
+int HP = 2;
 
 // function declare
 int GetEntrance();
@@ -18,6 +19,7 @@ void Initilization(const int entrance);
 void SetClock();
 void Move();
 void Display();
+void Clear();
 
 
 void setup() {
@@ -33,10 +35,13 @@ void setup() {
     // clear
   }
   Initilization(Entrance);
+  Clear();
+  Display();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  
   /*if (Reset == 1){
     GetEntrance();
     Initialization(Entrance);
@@ -70,7 +75,7 @@ int GetEntrance(){
     Serial.println(" ");
   }
   Serial.println(" ");
-  Serial.print("Input the entrance: ");
+  Serial.println("Input the entrance: ");
 
   while (!Serial.available() > 0);  //wait user's input
   Serial.readBytesUntil('\n', ReceiveBuffer, 2);
@@ -80,10 +85,10 @@ int GetEntrance(){
   {
     switch(num)
     {
-    case 1: return 0;
-    case 2: return 3;
-    case 3: return 12;
-    case 4: return 15;
+    case 1: cx = 0; cy = 0; ex = 3; ey = 3; return 0;
+    case 2: cx = 0; cy = 3; ex = 3; ey = 0; return 3;
+    case 3: cx = 3; cy = 0; ex = 0; ey = 3; return 12;
+    case 4: cx = 3; cy = 3; ex = 0; ey = 0; return 15;
     }
     return 0;
   }
@@ -103,10 +108,9 @@ void Initilization(const int entrance){
     }
   }
   int RandNum[4];
-  for(q;q<4:q++){
+  for(int q=0;q<4;q++){
     RandNum[q] = -1;
   }
-  q = 0;
   // Get 4 non-repeating random numbers.Legal ones
   for(int q=0;q<4;q++){
     RandNum[q] = random(16);
@@ -121,7 +125,7 @@ void Initilization(const int entrance){
       m++;
     }
   }
-  for (int p = 0;p<4:p++){
+  for (int p = 0;p<4;p++){
     int row = RandNum[p]%4;
     int column = RandNum[p]-row*4;
     Map[row][column].mine = 1;  
@@ -150,11 +154,19 @@ ISR(TIMER1_OVF_vect)
 {
   TCNT1=timer1_counter;
   count=count+1;
-  Serial.println(count);
+  //Serial.println(count);
   if(count==60)
   {
     count=0;
     Serial.print("Game Over");
+    while(Entrance == 0){
+      Entrance = GetEntrance();
+     // print wrong input
+      // clear
+      }
+     Initilization(Entrance);
+     Clear();
+     Display();
   }
 }
 
@@ -168,12 +180,20 @@ void Display(){
     }
     Serial.println(" ");
   }
+  //Clear();
+  Serial.println(" ");
+  Serial.println("Here we go->");
 }
 
 void Clear(){
-  for(int i = 0; i < 20; ++i){
+  /*for(int i = 0; i < l; ++i){
     Serial.println(" ");
+  }*/
+  for(int i = 0; i < 60; ++i)
+  {
+    Serial.print("-");
   }
+  Serial.println(" ");
 }
 
 
