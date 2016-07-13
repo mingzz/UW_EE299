@@ -29,34 +29,38 @@ void setup() {
   while(!Serial){
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  while(Entrance == 0){
-    Entrance = GetEntrance();
-    // print wrong input
-    // clear
-  }
-  Initilization(Entrance);
-  Clear();
-  Display();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
-  /*if (Reset == 1){
-    GetEntrance();
-    Initialization(Entrance);
+  if (Reset == 1){
+    while(Entrance == 0){
+    Entrance = GetEntrance();
+    // print wrong input
+    // clear
+    }
+    Initilization(Entrance);
+    Clear();
+    Display();
     Reset = 0;
   }
   Move();
+  Clear();
   Display();
-  if (Time expire || HP ==0){
+  /*if(count==60)
+  {
+    count=0;
+    Serial.print("Game Over");
     Reset = 1;
-    //.....
-  }
-  if (posistion == destination){
-    Reset = 1;
-    //....
   }*/
+  if (count==60 || HP ==0){
+    Reset = 1;
+    Serial.print("Game Over");
+  }
+  if (cx == ex && cy == ey){
+    Reset = 1;
+    Serial.print("Victory!");
+  }
 }
 
 // Output: Entrance:0, 3, 12, 15
@@ -145,30 +149,65 @@ void SetClock(){
   interrupts();
 }
 
-// Listen and execute direction input 
-void Move(){
-  
-}
-
 ISR(TIMER1_OVF_vect)
 {
   TCNT1=timer1_counter;
   count=count+1;
   //Serial.println(count);
-  if(count==60)
-  {
-    count=0;
-    Serial.print("Game Over");
-    while(Entrance == 0){
-      Entrance = GetEntrance();
-     // print wrong input
-      // clear
-      }
-     Initilization(Entrance);
-     Clear();
-     Display();
+  
+}
+
+void Move(){
+  Serial.readBytesUntil('\n', current, 1);
+  switch(current[0]){
+    case 'w': case 'W':Up(); break;
+    case 'a': case 'A':Left(); break;
+    case 's': case 'S':Down(); break;
+    case 'd': case 'D':Right(); break;
+    default:break;  
+  }
+  Map[cx][cy].used = 1;
+  if(Map[cx][cy].mine == 1){
+    HP-=1;
+    //Map[cx][cy].mine = 0;
+    //Map[cx][cy].show = 'o';
+    Serial.println("IDIOTS!!!!!!!!!");
+    /*
+    for(int i=0;i<4;i++){
+      for(int j=0;j<4;j++){
+        Serial.print(Map[i][j].show);
+        if(j == 3)
+          Serial.println(' ');
+        else
+          Serial.print(' ');     
+     }
+   }  */
+  }
+  //Clear();
+  //Display();
+}
+void Up(){
+  if (cx != 0){
+    cx-=1;
   }
 }
+void Left(){
+  if (cy != 0){
+    cy-=1;
+  }
+}
+void Down(){
+  if (cx != 3){
+    cx+=1;
+  }
+}
+void Right(){
+  if (cy != 3){
+    cy+=1;
+  }  
+}
+
+
 
 void Display(){
   for(int i = 0; i < 4; ++i){
