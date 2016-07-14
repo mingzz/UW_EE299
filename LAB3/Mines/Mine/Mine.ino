@@ -1,7 +1,7 @@
 #include <LiquidCrystal.h>
 // working variables
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7, 8);
-int Entrance = 0; // legal:0, 3, 12, 15
+int Entrance = -1; // legal:0, 3, 12, 15
 int Reset = 1;
 struct Plot{
   int mine; //0 for no mine, 1 for mine
@@ -23,11 +23,15 @@ void setup() {
   while(!Serial){
     ; // wait for serial port to connect. Needed for Leonardo only
   }
+  randomSeed(analogRead(0));
 }
 
 void loop() {
   if (Reset == 1){
-    while(Entrance == 0){
+    cx = cy = ex = ey = 0;
+    HP = 2;
+    Entrance = -1;
+    while(Entrance == -1){
     Entrance = GetEntrance();
     }
     Initilization(Entrance);
@@ -35,18 +39,26 @@ void loop() {
     Display();
     Reset = 0;
     count = 0;
+    lcd.display();
+    //Serial.println(Reset);
   }
   if(Serial.available() > 0){
-    Move();
-    Line();
-    Display();
+    if(Move() == 0){
+      Line();
+      Display();
+    }
   }
   if ((count == 60 || HP == 0) && Reset == 0){
     //Reset = 1;
-    Serial.println("Game Over");
+    if(HP == 0){
+      Serial.println("You die! Game Over");
+    }
+    else{
+      Serial.println("Time Out! Game Over");
+    }
     GameOver();
   }
-  if (cx == ex && cy == ey){
+  else if (cx == ex && cy == ey){
     //Reset = 1;
     Serial.println("Victory!");
     GameOver();
@@ -55,6 +67,8 @@ void loop() {
 
 // Output: Entrance:0, 3, 12, 15
 int GetEntrance(){
+  Line();
+  int en = 0;
   char ReceiveBuffer[2];
   int num = 0;
   //Print the map to show the position of entrance 
@@ -79,14 +93,17 @@ int GetEntrance(){
   {
     switch(num)
     {
-    case 1: cx = 0; cy = 0; ex = 3; ey = 3; return 0;
-    case 2: cx = 0; cy = 3; ex = 3; ey = 0; return 3;
-    case 3: cx = 3; cy = 0; ex = 0; ey = 3; return 12;
-    case 4: cx = 3; cy = 3; ex = 0; ey = 0; return 15;
+    case 1: cx = 0; cy = 0; ex = 3; ey = 3; en = 0; break;
+    case 2: cx = 0; cy = 3; ex = 3; ey = 0; en = 3; break;
+    case 3: cx = 3; cy = 0; ex = 0; ey = 3; en = 12; break;
+    case 4: cx = 3; cy = 3; ex = 0; ey = 0; en = 15; break;
+    default: en = -1; break;
     }
-    return 0;
   }
-  else return 0;
+  else{
+    en = -1;
+  }
+  return en;
 }
 
 // Set Metrix with four random mines 
@@ -125,6 +142,7 @@ void Initilization(const int entrance){
     Map[row][column].mine = 1;  
     Map[row][column].show = '*';    
   }
+  Map[cx][cy].used = 1;
 }
 
 // set 1 second frequency divider and initial count number 
@@ -144,10 +162,12 @@ ISR(TIMER1_OVF_vect)
   TCNT1=timer1_counter;
   count=count+1;
   //Serial.println(count);
-  
+  if(Reset == 0){
+      LCDupdate();
+  }
 }
 
-void Move(){
+int Move(){
   char current[1];
   Serial.readBytesUntil('\n', current, 1);
   switch(current[0]){
@@ -155,7 +175,7 @@ void Move(){
     case 'a': case 'A':Left(); break;
     case 's': case 'S':Down(); break;
     case 'd': case 'D':Right(); break;
-    default:break;  
+    default: return -1;  
   }
   Map[cx][cy].used = 1;
   if(Map[cx][cy].mine == 1){
@@ -163,17 +183,9 @@ void Move(){
     //Map[cx][cy].mine = 0;
     //Map[cx][cy].show = 'o';
     Serial.println("IDIOTS!!!!!!!!!");
-    /*
-    for(int i=0;i<4;i++){
-      for(int j=0;j<4;j++){
-        Serial.print(Map[i][j].show);
-        if(j == 3)
-          Serial.println(' ');
-        else
-          Serial.print(' ');     
-     }
-   }  */
+    LCDupdate();
   }
+  return 0;
   //Line();
   //Display();
 }
@@ -209,7 +221,7 @@ void Display(){
     Serial.println(" ");
   }
   Serial.println(" ");
-  Serial.println("Here we go->");
+  //Serial.println("Here we go->");
 }
 
 void Line(){
@@ -221,16 +233,32 @@ void Line(){
 }
 
 void GameOver(){
+  lcd.clear();
+  Reset = -1;
   char Buffer[2];
   Serial.println("Do you want to try again? Y/N");
   while (!Serial.available() > 0);  //wait user's input
-  Serial.readBytesUntil('\n', Buffer, 1);
+  Serial.readBytesUntil('\n', Buffer, 2);
+  
   if(Buffer[0] == 'Y'){
     Reset = 1;
+    Serial.println("Reset");
   }
   else{
     //Game over
+    Serial.println(":-)");
+    Serial.end();
   }
+}
+
+void LCDupdate(){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("HP: ");
+  lcd.print(HP);
+  lcd.setCursor(0, 1);
+  lcd.print("Time Left: ");
+  lcd.print(60 - count);
 }
 
 
