@@ -2,114 +2,63 @@
 //-----------------------------------------------------------------
 //  working variables
 int inByte = 0;
-char b[15];    // store input expression
-int x = 0;     // operand 1
-int y = 0;     // operand 2
-char op;       // operator
+char b[10];    //  index 0 is on the lhs
+int x = 0;
+int y = 0;
+char op;
 void setup()
 {
   Wire.begin();         // join i2c bus (address optional for master)
-  Serial.begin(9600);       // start serial for output
   // start serial port at 9600 bps and wait for port to open:
   Serial.begin(9600);
   while (!Serial) 
   {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  
   establishContact();  // send a byte to establish contact until receiver responds 
 }
 
 void loop()
 {
-  // always initialize the array
-  for(int j=0; j<15; ++j)
+  for(int j=0; j<10; ++j)
   {
     b[j] = 0;
   }
-  // initialize the operands
   x=y=0;
-  // working variables for processing input array
-  int startPos, opPos, endPos, negPos, negFlag;
-  // initialize these local variables
-  startPos = 0;
-  negFlag = 0;
-  opPos = 100;
-  negPos = 100;
+  int opPos, endPos;
   // if we get a valid byte, read and display stuff:
   if (Serial.available() > 0) 
   {
-    //  read up to 15 characters - put them into array b
+    //  read up to 3 characters - put them into array b
     Serial.readBytesUntil('\n', b, 15);
-    // whether operand 1 is negative or not 
-    if (b[0]=='-')
-    {
-        // if negative, set startPos and negFlag as 1
-        startPos = 1;
-        negFlag = 1;
-    }
-    // print start position of numeric data
-    Serial.print("startPos is:");
-    Serial.println(startPos);
     // traverse
     for (int i = 0;i<15;i++)
     {
-      // if negative, skip
-      if(startPos && negFlag )
-      {
-        negFlag = 0;
-        continue; 
-      }
-      // get the operator
+      //  get operator
       if ( b[i]=='+'|| 
             b[i]=='-'||
             b[i]=='*'||
             b[i]=='/')
       {
-        // detect and store the second '-' when operand 2 is negative 
-        if(opPos == 100)
-          opPos = i;
-        else
-          negPos = i;
+        opPos=i;
       }
-      // stop signal
       if ( b[i]=='=')
       {
         endPos=i;
       }
     }
-    // print operator position and end position
-    Serial.print("opPos is:");
-    Serial.println(opPos);
-    Serial.print("endPos is:");
-    Serial.println(endPos);
-    // convert char to int and get x
-    if(startPos == 1)
-    {
-        x=CharToInt(1, opPos, x);    //negative
-        x = -1 * x;
-    }
-    else
-      x=CharToInt(0, opPos, x);     //positive
-    // convert char to int and get y      
-    if( negPos != 100)
-    {
-        y = CharToInt(opPos+2, endPos, y);  // negative
-        y = -1 * y;
-    }
-    else
-        y = CharToInt(opPos+1, endPos, y);  // positive
-    // get operator
+    // convert char to int
+    x=CharToInt(0, opPos, x);
+    y=CharToInt(opPos+1, endPos, y);
     op = b[opPos];
-    // print operands and operator
+    // print on monitor
     Serial.print(x);
-    Serial.print(op);      
-    Serial.println(y);
-    // calculate
+    Serial.print(op);
+    Serial.println(y); 
+    // get result    
     int result = Calc(x,y,op);
-    // i2c transmission
+        // i2c transmission
     Trans(x,y,op,result);
-    //serial output
     Serial.print("The result is : "); 
     Serial.println(result);
     delay(100);
@@ -132,9 +81,9 @@ int Calc(const int x, const int y, const char op)
 // an atoi() implementation, convert char to int
 int CharToInt(const int front, const int final, int target)
 {
-  for(int k=front; k<final; k++)
+  for(int i=front; i<final; i++)
   {
-    target = 10*target + (b[k]-'0');
+    target = 10*target + (b[i]-'0');
   }
   return target;
 }
@@ -146,6 +95,7 @@ void establishContact() {
     delay(300);
   }
 }
+
 
 
 // tansmit data to the slave
@@ -193,4 +143,5 @@ int Trans(int x,int y,const  char op,int result){
   Wire.write(op);       
   Wire.endTransmission();     // stop transmitting
 }
+
 

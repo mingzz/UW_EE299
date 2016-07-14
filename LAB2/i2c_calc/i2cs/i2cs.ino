@@ -1,8 +1,8 @@
 #include <Wire.h>
 #include <LiquidCrystal.h>
 
-int a[8]; // store data get from the master
-int cnt = 0; // position cursor of a[8]
+int a[11]; // store data get from the master
+int cnt = 0; // position cursor of a[10]
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7, 8);
 void setup()
@@ -28,29 +28,45 @@ void receiveEvent(int howMany)
     int c =Wire.read();    // receive byte as a character
     a[cnt++] = c;          // store data
   }
-  char x = Wire.read();      // receive byte as an integer
+  char op = Wire.read();      // receive byte as an integer
 
-  if(a[3] == 1)
+  if(a[6] == 1)
   {
-    a[0]=a[0]-256;      // a[0], operand 1 is negative
+    //a[0]=a[0]-256;      // a[0], operand 1 is negative
+    int x=-1*(a[0]+a[1]*255);
+    lcd.print(x);
   }
-  if(a[4] == 1)
+  else
   {
-    a[1]=a[1]-256;      // a[1], operand 2 is negative
+    int x=a[0]+a[1]*255;
+    lcd.print(x);
   }
-  if(a[5] == 1)
+  lcd.print(op);  //print operator
+  if(a[7] == 1)
   {
-    a[2]=a[2]-256;      // a[3], result is negative
+    int y=-1*(a[2]+a[3]*255);
+    lcd.print(y);
   }
-  // print result on lcd
-  lcd.print(a[0]);
-  lcd.print(x);  
-  lcd.print(a[1]);     
+  else
+  {
+    int y=a[2]+a[3]*255;
+    lcd.print(y);
+  }
   lcd.print('=');
   lcd.setCursor(0, 1);
-  lcd.print(a[2]);
+  if(a[8] == 1)
+  {
+    int z=-1*(a[4]+a[5]*255);
+    lcd.print(z);
+  }
+  else
+  {
+    int z=a[4]+a[5]*255;
+    lcd.print(z);
+  }
+  // print result on lcd
   // reset data array and count 
-  for (int i = 0; i<8; i++){
+  for (int i = 0; i<11; i++){
     a[i]=0;   
   }
   cnt = 0;
