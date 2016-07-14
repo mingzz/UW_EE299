@@ -46,7 +46,6 @@ void loop()
         startPos = 1;
         negFlag = 1;
     }
-
     Serial.print("startPos is:");
     Serial.println(startPos);
     for (int i = 0;i<15;i++)
