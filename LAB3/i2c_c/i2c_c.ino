@@ -56,11 +56,21 @@ void loop() {
       break;
     }
     case setEntrance:{
-      Entrance = GetEntrance();
+      while(Entrance == -1)
+      {
+        Entrance = GetEntrance();   //add the wait for the other people
+      }
       Map[cx][cy].used = 1;
       sndEvent = Entrnce_TX;
       actEvent = Play;
       Serial.println("Start");
+      if(Map[cx][cy].mine == 1){
+        HP-=1;
+        //Map[cx][cy].mine = 0;
+        //Map[cx][cy].show = 'o';
+        Serial.println(".....You are born with a mine. It's cool.");
+        LCDupdate();
+      }
       Line();
       Display(); 
       break;
@@ -184,6 +194,8 @@ int GetEntrance(){
 // Set four mines in the Metrix
 void Initialization(){
   int i=0;
+  int tmpMine = -1;
+  int sameflag = 0;
   
   for(int i=0;i<4;i++){
     for(int j=0;j<4;j++){
@@ -206,10 +218,39 @@ void Initialization(){
   Serial.println("Please choose four numbers as mines:");
 
     for(i=0;i<4;i++){
+      while(1)
+      {
+        sameflag = 0;
         Serial.print("Please input mine ");
         Serial.println(i);
         while (!Serial.available() > 0);  //wait user's input
-        MineBuffer[i] = Serial.parseInt();
+        tmpMine = Serial.parseInt();
+        if(tmpMine < 0 || tmpMine > 15)
+        {
+          Serial.println("Invalid input, Please input a number of 0-15");
+        }
+        else
+        {
+          //the mine cannot be placed at the same place
+          for(int j =0; j < i; ++j) 
+          {
+            if(tmpMine == MineBuffer[j])
+            {
+              sameflag = 1;
+            }
+          }
+          //The number is different from the others
+          if(sameflag == 0)
+          {
+            break;
+          }
+          else
+          {
+             Serial.println("Invalid input, it can't be the same as the other mines");
+          }
+        }
+      }
+      MineBuffer[i] = tmpMine;
     }
   // need to prohibit wrong input here
   for(i=0;i<4;i++){

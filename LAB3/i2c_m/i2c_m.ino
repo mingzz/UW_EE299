@@ -39,23 +39,32 @@ void loop() {
     Entrance = -1;
     Reset = 0;
     Initialization(); //set Mines
-    Entrance = GetEntrance();   //www/add the wait for the other people
+    while(Entrance == -1)
+    {
+       Entrance = GetEntrance();   //add the wait for the other people
+    }
     Wire.beginTransmission(4);
     Wire.write('E');
     Wire.endTransmission();
-
+    //wait for the other player choose the entrance
   do{
     Wire.requestFrom(4, 1);
     transGet = Wire.read();
   }while(transGet != 'E');
     Map[cx][cy].used = 1;
     Serial.println("Start");
+    if(Map[cx][cy].mine == 1){
+      HP-=1;
+      //Map[cx][cy].mine = 0;
+      //Map[cx][cy].show = 'o';
+      Serial.println(".....You are born with a mine. It's cool.");
+      LCDupdate();
+    }
     Line();
     Display();
     Reset = 0;
     count = 0;
     lcd.display();   
-
   }
   if(Serial.available() > 0){
     if(Move() == 0){
@@ -148,6 +157,8 @@ void Initialization(){
   int MineBuffer[5];
   int i=0;
   int transFlag = 0;
+  int tmpMine = -1;
+  int sameflag = 0;
   for(int i=0;i<4;i++){
     for(int j=0;j<4;j++){
       Map[i][j].mine = 0;
@@ -162,10 +173,39 @@ void Initialization(){
   Serial.println("Please choose four numbers as mines:");
 
     for(i=0;i<4;i++){
+      while(1)
+      {
+        sameflag = 0;
         Serial.print("Please input mine ");
         Serial.println(i);
         while (!Serial.available() > 0);  //wait user's input
-        MineBuffer[i] = Serial.parseInt();
+        tmpMine = Serial.parseInt();
+        if(tmpMine < 0 || tmpMine > 15)
+        {
+          Serial.println("Invalid input, Please input a number of 0-15");
+        }
+        else
+        {
+          //the mine cannot be placed at the same place
+          for(int j =0; j < i; ++j) 
+          {
+            if(tmpMine == MineBuffer[j])
+            {
+              sameflag = 1;
+            }
+          }
+          //The number is different from the others
+          if(sameflag == 0)
+          {
+            break;
+          }
+          else
+          {
+             Serial.println("Invalid input, it can't be the same as the other mines");
+          }
+        }
+      }
+      MineBuffer[i] = tmpMine;
     }
   // need to prohibit wrong input here
   Wire.beginTransmission(4); // transmit to device #4
@@ -187,11 +227,12 @@ void Initialization(){
         transFlag=transFlag+1;
     }
   }while(transFlag != 4);
+  /*
   Serial.println("Through!!!!!!");
      for(i=0;i<4;i++){
       Serial.println(MineBuffer[i]);
      }
-  Serial.println("HERE HERE HERE");
+  Serial.println("HERE HERE HERE");*/
   for (int p = 0;p<4;p++){
     int row = MineBuffer[p]%4;
     int column = MineBuffer[p]-row*4;
@@ -313,7 +354,13 @@ void LCDupdate(){
   lcd.print(HP);
   lcd.setCursor(0, 1);
   lcd.print("Time Left: ");
-  lcd.print(60 - count);
+  if(Reset == 0){
+    lcd.print(60 - count);
+  }
+  else{
+    lcd.print(60);
+  }
+    
 }
 
 
