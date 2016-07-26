@@ -32,6 +32,7 @@ void setup() {
   while(!Serial){
     ; // wait for serial port to connect. Needed for Leonardo only
   }
+  Serial.println("Hint: Use WASD To Move");
 }
 
 void loop() {
@@ -51,6 +52,7 @@ void loop() {
     Wire.write('E');
     Wire.endTransmission();
     //wait for the other player choose the entrance
+    Serial.println("Wait for your competitor to set entrance.");
   do{
     Wire.requestFrom(4, 1);
     transGet = Wire.read();
@@ -225,6 +227,7 @@ void Initialization(){
   }
   //Serial.println(" ");
   Wire.endTransmission();    // stop transmitting
+  Serial.println("Wait for your competitor to set mines.");
   do{
     Wire.requestFrom(4, 4);
     transFlag = 0;
@@ -286,7 +289,7 @@ int Move(){
     HP-=1;
     //Map[cx][cy].mine = 0;
     //Map[cx][cy].show = 'o';
-    Serial.println("IDIOTS!!!!!!!!!");
+    Serial.println("OOOOOOOPS!!!!!!!!!");
     LCDupdate();
   }
   return 0;

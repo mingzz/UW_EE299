@@ -45,6 +45,8 @@ void setup() {
   // initialize two events
   sndEvent = sndPending;
   actEvent = actPending;
+  Serial.println("Hint: Use WASD To Move");
+  Serial.println("Wait for your competitor to set mines.");
 }
 
 void loop() {
@@ -56,6 +58,7 @@ void loop() {
       sndEvent = Mine_TX;
       actEvent = actPending;
       Serial.println("setMine complete");
+      Serial.println("Wait for your competitor to set entrance.");
       break;
     }
     case setEntrance:{  // set entrance and start game
@@ -277,7 +280,7 @@ int Move(){
     HP-=1;
     //Map[cx][cy].mine = 0;
     //Map[cx][cy].show = 'o';
-    Serial.println("IDIOTS!!!!!!!!!");
+    Serial.println("OOOOOOOPS!!!!!!!!!");
     LCDupdate();
   }
   return 0;
