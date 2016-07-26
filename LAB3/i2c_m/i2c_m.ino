@@ -6,17 +6,20 @@
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7, 8);
 int Entrance = -1; // legal:0, 3, 12, 15
 int Reset = 1;
+
+// define plot structure on the map
 struct Plot{
   int mine; //0 for no mine, 1 for mine
   int used; //0 for no used, 1 for used
   char show;
 };
+// Map used to play game on
 Plot Map[4][4];
-int cx, cy;
-int ex, ey;
-int timer1_counter;
-int count;
-int HP = 2;
+int cx, cy; // current coordinates
+int ex, ey; // destination coordiantes
+int timer1_counter; // system clock
+int count;  // program clock
+int HP = 2; // health point
 
 char transGet;
 
@@ -41,8 +44,9 @@ void loop() {
     Initialization(); //set Mines
     while(Entrance == -1)
     {
-       Entrance = GetEntrance();   //add the wait for the other people
+       Entrance = GetEntrance();   // Get the entrance
     }
+    // send E to the slave: slave should get entrance
     Wire.beginTransmission(4);
     Wire.write('E');
     Wire.endTransmission();
@@ -51,8 +55,9 @@ void loop() {
     Wire.requestFrom(4, 1);
     transGet = Wire.read();
   }while(transGet != 'E');
-    Map[cx][cy].used = 1;
+    Map[cx][cy].used = 1; // standing on the entrance now
     Serial.println("Start");
+    // if stepping on a mine, HP-1, update lcd display
     if(Map[cx][cy].mine == 1){
       HP-=1;
       //Map[cx][cy].mine = 0;
@@ -60,18 +65,19 @@ void loop() {
       Serial.println(".....You are born with a mine. It's cool.");
       LCDupdate();
     }
-    Line();
-    Display();
-    Reset = 0;
-    count = 0;
+    Line(); // print line to divide
+    Display();  // display current map
+    Reset = 0; 
+    count = 0;  // reset program clock
     lcd.display();   
   }
   if(Serial.available() > 0){
-    if(Move() == 0){
+    if(Move() == 0){  // if moving legally, show line and display current map
       Line();
       Display();
     }
   }
+  // detect if the other player has completed the game
   Wire.requestFrom(4, 1);
   char result = Wire.read();
   if(result == 'W'){
@@ -116,7 +122,7 @@ int GetEntrance(){
   Line();
   int en = 0;
   char ReceiveBuffer[2];
-  int num = 0;
+  int num = 0;  // entrance number
   //Print the map to show the position of entrance 
   for(int i = 0; i < 4; ++i){
     for(int j = 0; j < 4; ++j){
@@ -135,6 +141,7 @@ int GetEntrance(){
   Serial.readBytesUntil('\n', ReceiveBuffer, 2);
 
   num = ReceiveBuffer[0] - '0';
+  // change entrance number into exact coordinates
   if(1 <= num && num <= 4)
   {
     switch(num)
@@ -154,11 +161,12 @@ int GetEntrance(){
 
 // Set four mines in the Metrix
 void Initialization(){
-  int MineBuffer[5];
+  int MineBuffer[5];  // store four mines
   int i=0;
-  int transFlag = 0;
-  int tmpMine = -1;
+  int transFlag = 0;  // legal tranmission times
+  int tmpMine = -1; // record if mines are on the same place
   int sameflag = 0;
+  // initialize the map
   for(int i=0;i<4;i++){
     for(int j=0;j<4;j++){
       Map[i][j].mine = 0;
@@ -207,7 +215,6 @@ void Initialization(){
       }
       MineBuffer[i] = tmpMine;
     }
-  // need to prohibit wrong input here
   Wire.beginTransmission(4); // transmit to device #4
   Wire.write('I');
   for(i=0;i<4;i++){
@@ -233,6 +240,7 @@ void Initialization(){
       Serial.println(MineBuffer[i]);
      }
   Serial.println("HERE HERE HERE");*/
+  // set mines on the map
   for (int p = 0;p<4;p++){
     int row = MineBuffer[p]%4;
     int column = MineBuffer[p]-row*4;
@@ -306,6 +314,7 @@ void Right(){
   }  
 }
 
+// display current map(also the progress)
 void Display(){
   for(int i = 0; i < 4; ++i){
     for(int j = 0; j < 4; ++j){
@@ -320,6 +329,7 @@ void Display(){
   //Serial.println("Here we go->");
 }
 
+// display a line
 void Line(){
   for(int i = 0; i < 60; ++i)
   {
@@ -328,6 +338,7 @@ void Line(){
   Serial.println(" ");
 }
 
+// one game has ended, ask user whether continue or not
 void GameOver(){
   lcd.clear();
   Reset = -1;
@@ -347,6 +358,7 @@ void GameOver(){
   }
 }
 
+// update hp and left time on lcd
 void LCDupdate(){
   lcd.clear();
   lcd.setCursor(0, 0);

@@ -3,21 +3,24 @@
 // working variables
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7, 8);
 int Entrance = -1; // legal:0, 3, 12, 15
+
+// define plot structure on the map
 struct Plot{
   int mine; //0 for no mine, 1 for mine
   int used; //0 for no used, 1 for used
   char show;
 };
+// Map used to play game on
 Plot Map[4][4];
-int cx, cy;
-int ex, ey;
-int HP = 2;
+int cx, cy; // current coordinates
+int ex, ey; // destination coordiantes
+int HP = 2; // health point
 
-int MineBuffer[4];
-byte SendBuffer[4];
-enum action{actPending, setMine, setEntrance, Play, End}actEvent;
-enum sending{sndPending, Mine_TX, Entrnce_TX, Win, Lose}sndEvent;
-boolean gameResult;
+int MineBuffer[4];  // store four mines
+byte SendBuffer[4]; // send mines using byte data type
+enum action{actPending, setMine, setEntrance, Play, End}actEvent; // system state event
+enum sending{sndPending, Mine_TX, Entrnce_TX, Win, Lose}sndEvent; // sending state event
+boolean gameResult; // game result on this side
 
 void receiveEvent(int howMany);
 void requestEvent();
@@ -36,26 +39,26 @@ void Display();
 void setup() {  
   Serial.begin(9600);
   Wire.begin(4);        
-  Wire.onReceive(receiveEvent); // register event
-  Wire.onRequest(requestEvent); // register event
+  Wire.onReceive(receiveEvent); // receive event
+  Wire.onRequest(requestEvent); // request event
   lcd.begin(16, 2);
-
+  // initialize two events
   sndEvent = sndPending;
   actEvent = actPending;
 }
 
 void loop() {
   switch(actEvent){
-    case actPending:
+    case actPending:// do nothing
       break;
-    case setMine:{
+    case setMine:{  // set mines
       Initialization();
       sndEvent = Mine_TX;
       actEvent = actPending;
       Serial.println("setMine complete");
       break;
     }
-    case setEntrance:{
+    case setEntrance:{  // set entrance and start game
       while(Entrance == -1)
       {
         Entrance = GetEntrance();   //add the wait for the other people
@@ -64,6 +67,7 @@ void loop() {
       sndEvent = Entrnce_TX;
       actEvent = Play;
       Serial.println("Start");
+      LCDupdate();
       if(Map[cx][cy].mine == 1){
         HP-=1;
         //Map[cx][cy].mine = 0;
@@ -75,25 +79,25 @@ void loop() {
       Display(); 
       break;
     }
-    case Play:{
+    case Play:{ // playing
       if(Serial.available() > 0){
         if(Move() == 0){
           Line();
           Display();
         }
       }
-      //how to win
-      if (HP == 0){
+      // two situations
+      if (HP == 0){// lose
         gameResult = false;
         actEvent = End;  
       }
-      else if (cx == ex && cy == ey){
+      else if (cx == ex && cy == ey){// win
         gameResult = true;
         actEvent = End;  
       }
       break;
   }
-  case End:{
+  case End:{ // game has ended
     if (gameResult){
       reset(false);
       sndEvent = Win;
@@ -124,28 +128,27 @@ void receiveEvent(int howMany)
       break;
     }
     case 'E': actEvent = setEntrance; break;
-    case 'W': reset(1); actEvent = actPending; break;
-    case 'L': reset(0);actEvent = actPending; break;
-    case 'Z': reset(2);actEvent = actPending; break;
+    case 'W': reset(1); actEvent = actPending; break;// master win
+    case 'L': reset(0);actEvent = actPending; break; // master lose
+    case 'Z': reset(2);actEvent = actPending; break; // timeout, all lose
     default: break;
   }
   delay(400);
 }
 
 void requestEvent(){
-
   switch (sndEvent){
     case sndPending: break;
-    case Mine_TX: {
+    case Mine_TX: {// send four mines
       Wire.write(SendBuffer,4);
       break;
     }
-    case Entrnce_TX:Wire.write('E'); break;
-    case Win:Wire.write('W'); break;
-    case Lose:Wire.write('L'); break;
+    case Entrnce_TX:Wire.write('E'); break; // slave has set entrance, start game
+    case Win:Wire.write('W'); break;  // slave win
+    case Lose:Wire.write('L'); break; // slave has been bumped up
     default:break;
   }
-  sndEvent = sndPending;
+  sndEvent = sndPending;// reset send event every time
 }
 
 
@@ -155,7 +158,7 @@ int GetEntrance(){
   Line();
   int en = 0;
   char ReceiveBuffer[2];
-  int num = 0;
+  int num = 0;// entrance number
   //Print the map to show the position of entrance 
   for(int i = 0; i < 4; ++i){
     for(int j = 0; j < 4; ++j){
@@ -174,6 +177,7 @@ int GetEntrance(){
   Serial.readBytesUntil('\n', ReceiveBuffer, 2);
 
   num = ReceiveBuffer[0] - '0';
+  // change entrance number into exact coordinates
   if(1 <= num && num <= 4)
   {
     switch(num)
@@ -194,9 +198,9 @@ int GetEntrance(){
 // Set four mines in the Metrix
 void Initialization(){
   int i=0;
-  int tmpMine = -1;
+  int tmpMine = -1; // record if mines are on the same place
   int sameflag = 0;
-  
+  // initialize the map  
   for(int i=0;i<4;i++){
     for(int j=0;j<4;j++){
       Map[i][j].mine = 0;
@@ -204,6 +208,7 @@ void Initialization(){
       Map[i][j].show = 'o';      
     }
   }
+  // set mines on the map
   for (int p = 0;p<4;p++){
     int row = MineBuffer[p]%4;
     int column = MineBuffer[p]-row*4;
@@ -252,7 +257,6 @@ void Initialization(){
       }
       MineBuffer[i] = tmpMine;
     }
-  // need to prohibit wrong input here
   for(i=0;i<4;i++){
     SendBuffer[i]=(byte)MineBuffer[i];
   }
@@ -300,7 +304,7 @@ void Right(){
     cy+=1;
   }  
 }
-
+// display current map(also the progress)
 void Display(){
   for(int i = 0; i < 4; ++i){
     for(int j = 0; j < 4; ++j){
@@ -314,7 +318,7 @@ void Display(){
   Serial.println(" ");
   //Serial.println("Here we go->");
 }
-
+// display a line
 void Line(){
   for(int i = 0; i < 60; ++i)
   {
@@ -322,7 +326,7 @@ void Line(){
   }
   Serial.println(" ");
 }
-
+// update hp on lcd
 void LCDupdate(){
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -330,7 +334,7 @@ void LCDupdate(){
   lcd.print(HP);
 }
 
-
+// reset when a game has ended
 void reset (const int masterResult){
   if(masterResult == 1){
     Serial.println("You Lose");
