@@ -182,7 +182,7 @@ int Move(){
     HP-=1;
     //Map[cx][cy].mine = 0;
     //Map[cx][cy].show = 'o';
-    Serial.println("IDIOTS!!!!!!!!!");
+    Serial.println("OOOOOPS!!!!!!!!!");
     LCDupdate();
   }
   return 0;

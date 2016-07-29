@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1469778777 source:c:\users\yiming\desktop\uw\ee299\lab4\othello\main.c
+	<stdio.h>
+	<stdlib.h>
+	<stdbool.h>
+
