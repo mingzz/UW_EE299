@@ -22,17 +22,17 @@ bool reverse[8][8];
 
 void init();
 int move(const int mode);
-bool isMoveLegal(char map[8][8], const int raw, const int col, const char player, const char opponent);
+bool isMoveLegal(char map[8][8], const int row, const int col, const char player, const char opponent);
 void display(void);
 int gameOver(void);
 int canMove(char map[8][8], const char player, const char opponent);
 struct plot MinMax(int depth, const char player, const char opponent);
-void findPossebleMoves(struct node *parent, const char player, const char opponent);
+void findPossibleMoves(struct node *parent, const char player, const char opponent);
 struct node *insertTree(const int row, const int col, struct node *parent, struct node *preSibling, const char player, const char opponent);
 int Min(struct node *root, int depth, const char player, const char opponent);
 int Max(struct node *root, int depth, const char player, const char opponent);
-int evaluate(char map[8][8]);
-
+int evaluate(struct node *current, const char player, const char opponent);
+void clean(struct node *parent);
 
 int main()
 {
@@ -41,7 +41,7 @@ int main()
     printf("input format:row line\n");
     init();
     display();
-    printf("1.VS Computer 2.VS User\nChoose mode:");
+    printf("1.VS Computer 2.VS User 3.AI VS AI\nChoose mode:");
     scanf("%d",&mode);
     while(0==status){
         status = move(mode);
@@ -69,7 +69,7 @@ void init(){
 
 int move(const int mode){
     static bool round = 0;
-    int raw = 0;
+    int row = 0;
     int col = 0;
     static int roundCount = 0;
     roundCount++;
@@ -77,65 +77,108 @@ int move(const int mode){
         if(gameOver()){
             return -1;
         }
+        if(-1==canMove(map,'x','o'))
+            round = true;
+        if(-1==canMove(map,'o','x'))
+            round = false;
     }
 
-    if(false==round){// black
-        printf("Black, it's your turn:");
-        scanf("%d %d",&raw,&col);
-        while(getchar()!='\n');
-        while(!isMoveLegal(map,raw,col,'x','o')){
-            printf("You cannot move here.\nEnter again:");
-            scanf("%d %d",&raw,&col);
+    if(1 == mode || 2 == mode){
+        if(false==round){// black
+            printf("Black, it's your turn:");
+            scanf("%d %d",&row,&col);
             while(getchar()!='\n');
-        }
-        printf("OK! You move to (%d,%d). \n",raw,col);
-        map[raw][col]='x';
-        for(int i = 0;i<8;i++){
-            for(int j = 0;j<8;j++){
-                if(true == reverse[i][j])
-                    map[i][j]='x';
-            }
-        }
-        round = true;
-    } else {// white
-        if(mode == 2){
-            printf("White, it's your turn:");
-            scanf("%d %d",&raw,&col);
-            while(getchar()!='\n');
-            while(!isMoveLegal(map,raw,col,'o','x')){
+            while(!isMoveLegal(map,row,col,'x','o')){
                 printf("You cannot move here.\nEnter again:");
-                scanf("%d %d",&raw,&col);
+                scanf("%d %d",&row,&col);
                 while(getchar()!='\n');
             }
-            printf("OK! You move to (%d,%d). \n",raw,col);
-            map[raw][col]='o';
+            printf("OK! You move to (%d,%d). \n",row,col);
+            map[row][col]='x';
             for(int i = 0;i<8;i++){
                 for(int j = 0;j<8;j++){
                     if(true == reverse[i][j])
-                        map[i][j]='o';
+                        map[i][j]='x';
                 }
             }
-            round = false;
-        }else {
-            struct plot bestMove = MinMax(2,'o','x');
-            raw = bestMove.x;
+            round = true;
+        } else {// white
+            if(mode == 2){
+                printf("White, it's your turn:");
+                scanf("%d %d",&row,&col);
+                while(getchar()!='\n');
+                while(!isMoveLegal(map,row,col,'o','x')){
+                    printf("You cannot move here.\nEnter again:");
+                    scanf("%d %d",&row,&col);
+                    while(getchar()!='\n');
+                }
+                printf("OK! You move to (%d,%d). \n",row,col);
+                map[row][col]='o';
+                for(int i = 0;i<8;i++){
+                    for(int j = 0;j<8;j++){
+                        if(true == reverse[i][j])
+                            map[i][j]='o';
+                    }
+                }
+                round = false;
+            }else {
+                struct plot bestMove = MinMax(2,'o','x');
+                row = bestMove.x;
+                col = bestMove.y;
+                isMoveLegal(map,row,col,'o','x');
+                map[row][col]='o';
+                for(int i = 0;i<8;i++){
+                    for(int j = 0;j<8;j++){
+                        if(true == reverse[i][j])
+                            map[i][j]='o';
+                    }
+                }
+                clean(root->firstChild);
+                round = false;
+            }
+        }
+    }
+    if(3 == mode){
+        if(false == round){
+            struct plot bestMove = MinMax(3,'x','o');
+            row = bestMove.x;
             col = bestMove.y;
-            map[raw][col]='o';
-            isMoveLegal(map,raw,col,'o','x');
+            isMoveLegal(map,row,col,'x','o');
+            map[row][col]='x';
+            for(int i = 0;i<8;i++){
+                for(int j = 0;j<8;j++){
+                    if(true == reverse[i][j])
+                        map[i][j]='x';
+                }
+            }
+            clean(root->firstChild);
+            round = true;
+        }else{
+            struct plot bestMove = MinMax(1,'o','x');
+            row = bestMove.x;
+            col = bestMove.y;
+            isMoveLegal(map,row,col,'o','x');
+            map[row][col]='o';
             for(int i = 0;i<8;i++){
                 for(int j = 0;j<8;j++){
                     if(true == reverse[i][j])
                         map[i][j]='o';
                 }
             }
+            clean(root->firstChild);
             round = false;
         }
     }
+
+    root->firstChild = NULL;
+    root->nextSibling = NULL;
+    root->mov.x = -1;
+    root->mov.y = -1;
     display();
     return 0;
 }
 
-bool isMoveLegal(char map[8][8], const int raw, const int col, const char player, const char opponent){
+bool isMoveLegal(char map[8][8], const int row, const int col, const char player, const char opponent){
     int xNext = 0;
     int yNext = 0;
     int legal[8];
@@ -146,14 +189,16 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
         }
     }
 
-    // 1.above
+    if(map[row][col]=='x'||map[row][col]=='o')
+        return false;
+    // 1.left
     for(int i = 1;i<8;i++){
-        xNext = raw;
+        xNext = row;
         yNext = col - i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row][col - 1]){
                 legal[0] = 1;
             }
             if(player==map[xNext][yNext]&&legal[0]){
@@ -161,7 +206,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw;
+                    x = row;
                     y = col - i;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -175,14 +220,14 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
             }
         }
     }
-    // 2.below
+    // 2.right
     for(int i = 1;i<8;i++){
-        xNext = raw;
+        xNext = row;
         yNext = col + i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row][col + 1]){
                 legal[1] = 1;
             }
             if(player==map[xNext][yNext]&&legal[1]){
@@ -190,7 +235,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw;
+                    x = row;
                     y = col + i;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -204,23 +249,22 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
             }
         }
     }
-    // 3.left
+    // 3.above
     for(int i = 1;i<8;i++){
-        xNext = raw - i;
+        xNext = row - i;
         yNext = col;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row - 1][col]){
                 legal[2] = 1;
-
             }
             if(player==map[xNext][yNext]&&legal[2]){
                 legal[2] = 2;
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw - i;
+                    x = row - i;
                     y = col;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -234,14 +278,14 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
             }
         }
     }
-    // 4.right
+    // 4.below
     for(int i = 1;i<8;i++){
-        xNext = raw + i;
+        xNext = row + i;
         yNext = col;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row + 1][col]){
                 legal[3] = 1;
             }
             if(player==map[xNext][yNext]&&legal[3]){
@@ -249,7 +293,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw + i;
+                    x = row + i;
                     y = col;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -266,12 +310,12 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
 
     // 5.upper-left
     for(int i = 1;i<8;i++){
-        xNext = raw - i;
+        xNext = row - i;
         yNext = col - i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row -1][col -1]){
                 legal[4] = 1;
             }
             if(player==map[xNext][yNext]&&legal[4]){
@@ -280,7 +324,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw - i;
+                    x = row - i;
                     y = col - i;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -295,14 +339,14 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
             }
         }
     }
-    // 6.lower-left
+    // 6.upper-right
     for(int i = 1;i<8;i++){
-        xNext = raw - i;
+        xNext = row - i;
         yNext = col + i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row -1][col +1]){
                 legal[5] = 1;
             }
             if(player==map[xNext][yNext]&&legal[5]){
@@ -310,7 +354,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw - i;
+                    x = row - i;
                     y = col + i;
                     if( x>=0&&x<=7 && y>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -324,14 +368,14 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
             }
         }
     }
-    // 7.upper-right
+    // 7.lower-left
     for(int i = 1;i<8;i++){
-        xNext = raw + i;
+        xNext = row + i;
         yNext = col - i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row + 1][col - 1]){
                 legal[6] = 1;
             }
             if(player==map[xNext][yNext]&&legal[6]){
@@ -339,7 +383,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw + i;
+                    x = row + i;
                     y = col - i;
                     if( x>=0&&x<=7 && y>=0&&y<=7){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -355,12 +399,12 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
     }
     // 8.lower-right
     for(int i = 1;i<8;i++){
-        xNext = raw + i;
+        xNext = row + i;
         yNext = col + i;
         if( xNext>=0&&xNext<=7 && yNext>=0&&yNext<=7 ){
             if ('.'==map[xNext][yNext])
                 break;
-            if (opponent==map[xNext][yNext]){
+            if (opponent==map[row + 1][col + 1]){
                 legal[7] = 1;
             }
             if(player==map[xNext][yNext]&&legal[7]){
@@ -368,7 +412,7 @@ bool isMoveLegal(char map[8][8], const int raw, const int col, const char player
                 int x;
                 int y;
                 for(int i = 1;i<8;i++){
-                    x = raw + i;
+                    x = row + i;
                     y = col + i;
                     if( x>=0&&y<=7 && x>=0&&y<=7 ){
                         if ('.'==map[x][y]||player==map[x][y])
@@ -409,18 +453,12 @@ void display(void){
 }
 
 int canMove(char map[8][8], const char player, const char opponent){
-    int blackCount = 0;
-    int whiteCount = 0;
     int movePlot = 0;
     for(int i = 0;i<8;i++){
         for(int j = 0;j<8;j++){
             if(map[i][j]=='.'){
                 if(isMoveLegal(map,i,j,player,opponent))
                     movePlot++;
-            } else if('x'==map[i][j]){
-                blackCount++;
-            } else{
-                whiteCount++;
             }
         }
     }
@@ -456,7 +494,7 @@ int gameOver(void){
     return 0;
 }
 
-void findPossebleMoves(struct node *parent, const char player, const char opponent){
+void findPossibleMoves(struct node *parent, const char player, const char opponent){
     struct node *current=NULL;
     //if(parent->mov.x != -1)printf("findPossibleMoves %d %d %c\n",parent->mov.x,parent->mov.y,parent->graph[parent->mov.x][parent->mov.y]);
     for(int i = 0;i<8;i++){
@@ -477,22 +515,27 @@ struct plot MinMax(int depth, const char player, const char opponent){
             root->graph[i][j]=map[i][j];
         }
     }
-    findPossebleMoves(root,player,opponent);
-    struct node *tmp=root->firstChild;
-    if(root->firstChild!=NULL)
+    findPossibleMoves(root,player,opponent);
+
+    if(root->firstChild!=NULL){
+        bestMove.x = root->firstChild->mov.x;
+        bestMove.y = root->firstChild->mov.y;
+        struct node *tmp=root->firstChild;
         value = Min(root->firstChild,depth,player,opponent);
-    if(value>bestValue){
-        bestValue = value;
-        bestMove = root->firstChild->mov;
-    }
-    while(tmp->nextSibling!=NULL){
-        value = Min(tmp->nextSibling,depth,player,opponent);
         if(value>bestValue){
             bestValue = value;
-            bestMove = tmp->nextSibling->mov;
+            bestMove = root->firstChild->mov;
         }
-        tmp=tmp->nextSibling;
+        while(tmp->nextSibling!=NULL){
+            value = Min(tmp->nextSibling,depth,player,opponent);
+            if(value>bestValue){
+                bestValue = value;
+                bestMove = tmp->nextSibling->mov;
+            }
+            tmp=tmp->nextSibling;
+        }
     }
+    //printf("best value : %d\n",bestValue);
     return bestMove;
 }
 
@@ -500,30 +543,31 @@ int Min(struct node *root, int depth, const char player, const char opponent){
     //printf("Min depth%d\n",depth);
     int min = infinity;
     int value = 0;
-    if(depth<=0) return evaluate(root->graph);
+    if(depth<=0) return evaluate(root,opponent,player);
     if(-1==canMove(root->graph,opponent,player)){
         if(-1==canMove(root->graph,player,opponent)){
-            return evaluate(root->graph);
+            return evaluate(root,opponent,player);
         }
         return Max(root,depth,player,opponent);
     }
-    findPossebleMoves(root,opponent,player);
+    findPossibleMoves(root,opponent,player);
 
     //debug
-    //printf("Min %d %d %c\n",root->mov.x,root->mov.y,root->graph[root->mov.x][root->mov.y]);
+    //printf("2Min %d %d %c\n",root->mov.x,root->mov.y,root->graph[root->mov.x][root->mov.y]);
 
-    struct node *tmp=root->firstChild;
-    if(root->firstChild!=NULL)
+    if(root->firstChild!=NULL){
+        struct node *tmp=root->firstChild;
         value = Max(root->firstChild,depth-1,player,opponent);
-    if(value<min){
-        min = value;
-    }
-    while(tmp->nextSibling!=NULL){
-        value = Max(tmp->nextSibling,depth-1,player,opponent);
         if(value<min){
             min = value;
         }
-        tmp=tmp->nextSibling;
+        while(tmp->nextSibling!=NULL){
+            value = Max(tmp->nextSibling,depth-1,player,opponent);
+            if(value<min){
+                min = value;
+            }
+            tmp=tmp->nextSibling;
+        }
     }
     return min;
 }
@@ -532,30 +576,31 @@ int Max(struct node *root, int depth, const char player, const char opponent){
     //printf("Max depth%d\n",depth);
     int max = -infinity;
     int value = 0;
-    if(depth<=0) return evaluate(root->graph);
-    if(-1==canMove(root->graph,opponent,player)){
-        if(-1==canMove(root->graph,player,opponent)){
-            return evaluate(root->graph);
+    if(depth<=0) return evaluate(root,player,opponent);
+    if(-1==canMove(root->graph,player,opponent)){
+        if(-1==canMove(root->graph,opponent,player)){
+            return evaluate(root,player,opponent);
         }
         return Min(root,depth,player,opponent);
     }
-    findPossebleMoves(root,player,opponent);
+    findPossibleMoves(root,player,opponent);
 
     //debug
     //printf("Max %d %d\n",root->mov.x,root->mov.y);
 
-    struct node *tmp=root->firstChild;
-    if(root->firstChild!=NULL)
+    if(root->firstChild!=NULL){
+        struct node *tmp=root->firstChild;
         value = Min(root->firstChild,depth-1,player,opponent);
-    if(value>max){
-        max = value;
-    }
-    while(tmp->nextSibling!=NULL){
-        value = Min(tmp->nextSibling,depth-1,player,opponent);
         if(value>max){
             max = value;
         }
-        tmp=tmp->nextSibling;
+        while(tmp->nextSibling!=NULL){
+            value = Min(tmp->nextSibling,depth-1,player,opponent);
+            if(value>max){
+                max = value;
+            }
+            tmp=tmp->nextSibling;
+        }
     }
     return max;
 }
@@ -583,6 +628,37 @@ struct node *insertTree(const int row, const int col, struct node *parent, struc
     return child;
 }
 
-int evaluate(char map[8][8]){
-    return 1;
+int evaluate(struct node *current, const char player, const char opponent){
+    int mobility = 0;
+    int stability = 0;
+    int value = 0;
+    int score = 0;
+    int row = current->mov.x;
+    int col = current->mov.y;
+    for(int m = 0;m<8;m++){
+        for(int n = 0;n<8;n++){
+            if(isMoveLegal(current->graph,m,n,player,opponent)){
+                mobility++;
+            }
+        }
+    }
+    if((current->graph[row-1][col]=='x'||current->graph[row-1][col]=='o')&&(current->graph[row+1][col]=='x'||current->graph[row+1][col]=='o')
+        &&(current->graph[row][col-1]=='x'||current->graph[row][col-1]=='o')&&(current->graph[row][col+1]=='x'||current->graph[row][col+1]=='o')
+        &&(current->graph[row-1][col-1]=='x'||current->graph[row-1][col-1]=='o')&&(current->graph[row+1][col+1]=='x'||current->graph[row+1][col+1]=='o')
+        &&(current->graph[row+1][col-1]=='x'||current->graph[row+1][col-1]=='o')&&(current->graph[row-1][col+1]=='x'||current->graph[row-1][col+1]=='o'))
+        stability++;
+    if((row==0&&col==0)||(row==7&&col==0)||(row==7&&col==7)||(row==0&&col==7)) value = 10;
+    if((row==0&&(col>=2&&col<=5))||(row==7&&(col>=2&&col<=5))||((row>=2&&row<=5)&&col==0)||((row>=2&&row<=5)&&col==7)) value = 5;
+
+    score = mobility+stability*3+value;
+    return score;
+}
+
+void clean(struct node *parent){
+    if(parent->firstChild!=NULL)
+        clean(parent->firstChild);
+    if(parent->nextSibling!=NULL){
+        clean(parent->nextSibling);
+    }
+    free(parent);
 }
