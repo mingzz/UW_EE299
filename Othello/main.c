@@ -4,35 +4,35 @@
 #define infinity 100
 
 char map[8][8];
-
+// plot on the board
 typedef struct plot{
     int x;
     int y;
 };
-
+// Game Tree node
 typedef struct node{
   char graph[8][8];
   struct plot mov;
   struct node *firstChild;
   struct node *nextSibling;
 };
-
+// root of tree
 struct node *root;
-bool reverse[8][8];
+bool reverse[8][8];// modified each time when isMoveLegal is called. Storing opponents' pieces which can be reversed
 
-void init();
-int move(const int mode);
-bool isMoveLegal(char map[8][8], const int row, const int col, const char player, const char opponent);
-void display(void);
-int gameOver(void);
-int canMove(char map[8][8], const char player, const char opponent);
-struct plot MinMax(int depth, const char player, const char opponent);
-void findPossibleMoves(struct node *parent, const char player, const char opponent);
-struct node *insertTree(const int row, const int col, struct node *parent, struct node *preSibling, const char player, const char opponent);
-int Min(struct node *root, int depth, const char player, const char opponent);
-int Max(struct node *root, int depth, const char player, const char opponent);
-int evaluate(struct node *current, const char player, const char opponent);
-void clean(struct node *parent);
+void init();// initiate the game
+int move(const int mode); // make a move
+bool isMoveLegal(char map[8][8], const int row, const int col, const char player, const char opponent); // analyze if this move is legal
+void display(void); // display the current map
+int gameOver(void); // if game is over
+int canMove(char map[8][8], const char player, const char opponent);  // if the player can move
+struct plot MinMax(int depth, const char player, const char opponent);  // MiniMax Algorithm entrance
+void findPossibleMoves(struct node *parent, const char player, const char opponent); // find all possible moves and will make a game tree
+struct node *insertTree(const int row, const int col, struct node *parent, struct node *preSibling, const char player, const char opponent); // insert a node into the tree
+int Min(struct node *root, int depth, const char player, const char opponent, int alpha, int beta); // Minimize the opponent's benefit
+int Max(struct node *root, int depth, const char player, const char opponent, int alpha, int beta); // Maximum the player's benefit
+int evaluate(struct node *current, const char player, const char opponent); // evaluate the board on the player side
+void clean(struct node *parent);  // delete tree
 
 int main()
 {
@@ -41,7 +41,7 @@ int main()
     printf("input format:row line\n");
     init();
     display();
-    printf("1.VS Computer 2.VS User 3.AI VS AI\nChoose mode:");
+    printf("1.User VS AI 2.User VS User 3.AI VS AI\nChoose mode:");
     scanf("%d",&mode);
     while(0==status){
         status = move(mode);
@@ -122,7 +122,7 @@ int move(const int mode){
                 }
                 round = false;
             }else {
-                struct plot bestMove = MinMax(2,'o','x');
+                struct plot bestMove = MinMax(3,'o','x');
                 row = bestMove.x;
                 col = bestMove.y;
                 isMoveLegal(map,row,col,'o','x');
@@ -140,7 +140,7 @@ int move(const int mode){
     }
     if(3 == mode){
         if(false == round){
-            struct plot bestMove = MinMax(3,'x','o');
+            struct plot bestMove = MinMax(4,'x','o');
             row = bestMove.x;
             col = bestMove.y;
             isMoveLegal(map,row,col,'x','o');
@@ -154,7 +154,7 @@ int move(const int mode){
             clean(root->firstChild);
             round = true;
         }else{
-            struct plot bestMove = MinMax(1,'o','x');
+            struct plot bestMove = MinMax(2,'o','x');
             row = bestMove.x;
             col = bestMove.y;
             isMoveLegal(map,row,col,'o','x');
@@ -510,6 +510,8 @@ struct plot MinMax(int depth, const char player, const char opponent){
     struct plot bestMove;
     int bestValue = -infinity;
     int value = 0;
+    int alpha = -infinity;
+    int beta = infinity;
     for(int i = 0;i<8;i++){
         for(int j = 0;j<8;j++){
             root->graph[i][j]=map[i][j];
@@ -521,13 +523,13 @@ struct plot MinMax(int depth, const char player, const char opponent){
         bestMove.x = root->firstChild->mov.x;
         bestMove.y = root->firstChild->mov.y;
         struct node *tmp=root->firstChild;
-        value = Min(root->firstChild,depth,player,opponent);
+        value = Min(root->firstChild,depth,player,opponent,alpha,beta);
         if(value>bestValue){
             bestValue = value;
             bestMove = root->firstChild->mov;
         }
         while(tmp->nextSibling!=NULL){
-            value = Min(tmp->nextSibling,depth,player,opponent);
+            value = Min(tmp->nextSibling,depth,player,opponent,alpha,beta);
             if(value>bestValue){
                 bestValue = value;
                 bestMove = tmp->nextSibling->mov;
@@ -539,7 +541,7 @@ struct plot MinMax(int depth, const char player, const char opponent){
     return bestMove;
 }
 
-int Min(struct node *root, int depth, const char player, const char opponent){
+int Min(struct node *root, int depth, const char player, const char opponent, int alpha, int beta){
     //printf("Min depth%d\n",depth);
     int min = infinity;
     int value = 0;
@@ -548,7 +550,7 @@ int Min(struct node *root, int depth, const char player, const char opponent){
         if(-1==canMove(root->graph,player,opponent)){
             return evaluate(root,opponent,player);
         }
-        return Max(root,depth,player,opponent);
+        return Max(root,depth,player,opponent,alpha,beta);
     }
     findPossibleMoves(root,opponent,player);
 
@@ -557,22 +559,26 @@ int Min(struct node *root, int depth, const char player, const char opponent){
 
     if(root->firstChild!=NULL){
         struct node *tmp=root->firstChild;
-        value = Max(root->firstChild,depth-1,player,opponent);
+        value = Max(root->firstChild,depth-1,player,opponent,alpha,beta);
         if(value<min){
             min = value;
         }
+        if(min<beta) beta = min;
+        if(beta<=alpha) return min;
         while(tmp->nextSibling!=NULL){
-            value = Max(tmp->nextSibling,depth-1,player,opponent);
+            value = Max(tmp->nextSibling,depth-1,player,opponent,alpha,beta);
             if(value<min){
                 min = value;
             }
+            if(min<beta) beta = min;
+            if(beta<=alpha) return min;
             tmp=tmp->nextSibling;
         }
     }
     return min;
 }
 
-int Max(struct node *root, int depth, const char player, const char opponent){
+int Max(struct node *root, int depth, const char player, const char opponent, int alpha, int beta){
     //printf("Max depth%d\n",depth);
     int max = -infinity;
     int value = 0;
@@ -581,7 +587,7 @@ int Max(struct node *root, int depth, const char player, const char opponent){
         if(-1==canMove(root->graph,opponent,player)){
             return evaluate(root,player,opponent);
         }
-        return Min(root,depth,player,opponent);
+        return Min(root,depth,player,opponent,alpha,beta);
     }
     findPossibleMoves(root,player,opponent);
 
@@ -590,15 +596,19 @@ int Max(struct node *root, int depth, const char player, const char opponent){
 
     if(root->firstChild!=NULL){
         struct node *tmp=root->firstChild;
-        value = Min(root->firstChild,depth-1,player,opponent);
+        value = Min(root->firstChild,depth-1,player,opponent,alpha,beta);
         if(value>max){
             max = value;
         }
+        if(max>alpha) alpha = max;
+        if(beta<=alpha) return max;
         while(tmp->nextSibling!=NULL){
-            value = Min(tmp->nextSibling,depth-1,player,opponent);
+            value = Min(tmp->nextSibling,depth-1,player,opponent,alpha,beta);
             if(value>max){
                 max = value;
             }
+            if(max>alpha) alpha = max;
+            if(beta<=alpha) return max;
             tmp=tmp->nextSibling;
         }
     }
