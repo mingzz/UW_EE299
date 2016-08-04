@@ -45,7 +45,7 @@ int speakerOut1=9;
 int flag3=0;
 bool flag4=0;
 LiquidCrystal lcd(2,3,4,5,6,7,8);
-int Mercury_tilt = 12;
+//int Mercury_tilt = 12;
 
 #define NOTE_B0  31
 #define NOTE_C1  33
@@ -137,6 +137,21 @@ int Mercury_tilt = 12;
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 
+int melody2[] = {
+  NOTE_G6, NOTE_E7, NOTE_G7,
+  NOTE_A7, 0, NOTE_F7, NOTE_G7,
+  0, NOTE_E7, 0, NOTE_C7,
+  NOTE_D7, NOTE_B6, 0, 0,
+};
+
+int tempo2[] = {
+  9, 9, 9,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+};
+
+
 
 //Mario main theme melody
 int melody1[] = {
@@ -219,10 +234,11 @@ void setup() {
   //Wire.onReceive(receiveEvent);
   lcd.begin(16,2);
   //Wire.begin();
-  //pinMode(speakerOut1,OUTPUT);
+  pinMode(speakerOut1,OUTPUT);
   //pinMode(Mercury_tilt,OUTPUT);
   //monitor function
   //serial_monitor(pos);
+  sing(melody2, tempo2);
   PRINT();
 }
 
@@ -333,7 +349,6 @@ void mov(const char turn){
 
 void sing(int melody[], int tempo[]) {
 
-  //Serial.println(" 'Mario Theme'");
   int siz = sizeof(melody1) / sizeof(int);
   for (int thisNote = 0; thisNote < siz; thisNote++) {
 
@@ -341,15 +356,11 @@ void sing(int melody[], int tempo[]) {
     // divided by the note type.
     //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
     int noteDuration = 1000 / tempo[thisNote];
-    //Serial.println(melody[thisNote]);
     buzz(speakerOut1, melody[thisNote], noteDuration);
 
-    // to distinguish the notes, set a minimum time between them.
-    // the note's duration + 30% seems to work well:
     int pauseBetweenNotes = noteDuration * 1.30;
     delay(pauseBetweenNotes);
 
-    // stop the tone playing:
     buzz(speakerOut1, 0, noteDuration);
   }
 }
@@ -617,7 +628,6 @@ ISR(TIMER1_OVF_vect)
   TCNT1=timer1_counter;
   if(flag3 == 1)
   {
-    digitalWrite(speakerOut1,LOW);
     flag3=0;
   }
   if(flag)
@@ -641,7 +651,6 @@ ISR(TIMER1_OVF_vect)
   else
   {
     count1=50;
-    digitalWrite(speakerOut1,HIGH);
     flag3=1;
     flag_buzzer = flag;
   }

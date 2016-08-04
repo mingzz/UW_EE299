@@ -444,7 +444,6 @@ ISR(TIMER1_OVF_vect)
   TCNT1=timer1_counter;
   if(flag3 == 1)
   {
-    digitalWrite(speakerOut1,LOW);
     flag3=0;
   }
   if(flag)
@@ -466,7 +465,6 @@ ISR(TIMER1_OVF_vect)
   else
   {
     count1=50;
-    digitalWrite(speakerOut1,HIGH);
     flag3=1;
     flag_buzzer = flag;
   }
