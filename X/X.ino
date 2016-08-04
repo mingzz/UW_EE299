@@ -26,7 +26,7 @@ bool btnFlag2 = false;
 boolean _up1=false;
 boolean _up2=false;
 int Button1 = 11;
-int Button2 = 10;
+int Button2 = 12;
 char incomingByte;
 bool flag_pos = 0;// decide whether the number input is x-axis or y-axis
 int x=0, y=0;// position of the input

@@ -139,6 +139,7 @@ void mov(const char turn){
         if(button(digitalRead(Button2),2))
         {
           x = (x+1)%8;
+          Serial.print(x);
           lcd.clear();
           lcd.setCursor(0,0);
           lcd.print(x);
@@ -553,7 +554,7 @@ ISR(TIMER1_OVF_vect)
   }
   else
   {
-    count1=30;
+    count1=50;
     digitalWrite(speakerOut1,HIGH);
     flag3=1;
     flag_buzzer = flag;
