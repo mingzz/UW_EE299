@@ -29,21 +29,21 @@ int Button1 = 11;
 int Button2 = 10;
 char incomingByte;
 bool flag_pos = 0;// decide whether the number input is x-axis or y-axis
-int x=-1, y=-1;// position of the input
+int x=0, y=0;// position of the input
 int Direction = 0;// means 8 different directions
 int temp_x, temp_y;
 int i, j, count;
 bool flag_valid_position = 0;//shows whether the position you input is valid or not  
-bool flag = 1;//1 means you are playing, 0 means the opponent is playing
+bool flag = 0;//1 means you are playing, 0 means the opponent is playing
 int flag_judge = 0;
 int chess = 4;
 char a = 'X', b = 'O';//a means my chess; b means the opponent's chess
 int timer1_counter;
-int count1=300;
-int count2=300;
+int count1=50;
 bool flag_buzzer;
 int speakerOut1=9;
 int flag3=0;
+bool flag4=0;
 LiquidCrystal lcd(2,3,4,5,6,7,8);
 int Mercury_tilt = 12;
 
@@ -194,6 +194,7 @@ int tempo1[] = {
 };
 
 void receiveEvent(int howMany);
+void mov(const char turn);
 void sing(int melody[], int tempo[]);
 void buzz(int targetPin, long frequency, long length);
 void serial_monitor(char pos[8][8]);
@@ -207,110 +208,129 @@ void LCDupdate();
 int button(bool state, int order);
 
 void setup() {
-
-  Serial.begin(9600);
+  pinMode(Button1,INPUT);
+  pinMode(Button2,INPUT);
+  Serial.begin(115200);
   SetClock();
   Wire.begin(9);
   Wire.onReceive(receiveEvent);
   lcd.begin(16,2);
   Wire.begin();
-  pinMode(speakerOut1,OUTPUT);
-  pinMode(Mercury_tilt,OUTPUT);
+  //pinMode(speakerOut1,OUTPUT);
+  //pinMode(Mercury_tilt,OUTPUT);
   //monitor function
   serial_monitor(pos);
 }
 
 void loop() {
+  /*
+  if(flag4 == 1)
+  {
+    transmit();
+    flag4=0;
+  }
+  */
   if(flag == 1)
   {
-    if(flag_judge == 3)
-    {
-      transmit();
-      if(count_x() == 0 || count_o() == 0 || chess == 64)
-        endgame();
-      //while(digitalRead(Mercury_tilt)==0);
-      flag = 0;//it's the opponent's turn to play
-    }
-    
-    if(button(digitalRead(Button1),1))//it only works when it's your turn to play
-  {
-    //while(digitalRead(Button1));
-    i=0;
-    j=0;
     flag_valid_position = 0;
-    delay(100);
-    Serial.println("a");
-    do 
-    {
-      if(button(digitalRead(Button2),2))
-      {
-        x = (x+1)%8;
-        lcd.clear();
-        lcd.setCursor(0,0);
-        lcd.print(x);
-        lcd.print(" <-");
-        lcd.setCursor(8,0);
-        lcd.print(y);
-        //while(digitalRead(Button2));
-      }
-    }while(!button(digitalRead(Button1),1));// problem! may cause memory problem. always loop 
-    delay(100);
-    Serial.println("b");
-    do 
-    {
-      if(button(digitalRead(Button2),2))
-      {
-        lcd.clear();
-        lcd.setCursor(0,0);
-        lcd.print(x);
-        lcd.setCursor(8,0);
-        y= (y+1)%8;
-        lcd.print(y);
-        lcd.print(" <-");
-        //while(digitalRead(Button2));
-      }
-    }while(!button(digitalRead(Button1),1));
-
-        Serial.println("Position received!");
-        Serial.print("The position input is (");
-        Serial.print(x);
-        Serial.print(", ");
-        Serial.print(y);
-        Serial.println(").");
-
-    if(flag_pos == 0)//put the chess only when both of the x-axis and y-axis have been prompted
-    {
+    bool donePut = false;
+    
+    while(donePut!=true){
+      mov('x');
+      mov('y');
+      if(flag4 == 1)break;
       if(pos[x][y]=='.')
-    {
-      operation();
-      if(flag_valid_position == 0)//if there is no 'O' chess having been reversed, invalid input!
       {
-        Serial.println("Invalid position input.");
-        flag_judge++;
-        pos[x][y] = '.';
+        operation();
+        if(flag_valid_position == 0)//if there is no 'O' chess having been reversed, invalid input!
+        {
+          Serial.println("Invalid position input.");
+          flag_judge++;
+          pos[x][y] = '.';
+        }
+        else 
+        {
+          transmit();
+          if(count_x() == 0 || count_o() == 0 || chess == 64)
+            endgame();
+          flag = 0;//it's the opponent's turn to play
+          donePut = true;
+        }
       }
-      else 
-      {
-        transmit();
-        if(count_x() == 0 || count_o() == 0 || chess == 64)
-          endgame();
-        //while(digitalRead(Mercury_tilt)==0);
-        flag = 0;//it's the opponent's turn to play
-      }
+      else Serial.println("There is already a chess on the position.");// there is already a chess on the position
     }
-    else Serial.println("There is already a chess on the position.");// there is already a chess on the position
 
-    serial_monitor(pos);
+    if(flag4 == 0 ){
+      Serial.println("Position received!");
+      Serial.print("The position input is (");
+      Serial.print(x);
+      Serial.print(", ");
+      Serial.print(y);
+      Serial.println(").");
+      Serial.println(' ');
+      serial_monitor(pos);
+    }else{
+      transmit();
+      Serial.println(' ');
+      flag4 = 0;
     }
   }
-  
+  delay(400);
+}
+
+void mov(const char turn){
+  switch (turn){
+    case 'x':
+      Serial.println("Please input x");
+      do 
+      {
+        if(flag4 == 1)break;
+        if(button(digitalRead(Button2),2))
+        {
+          x = (x+1)%8;
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print(x);
+          lcd.print(" <-");
+          lcd.setCursor(8,0);
+          lcd.print(y);
+          //while(digitalRead(Button2));
+        }
+      }while(!button(digitalRead(Button1),1));
+      break;
+    case 'y':
+        Serial.println("Please input y");
+        do 
+        {
+          if(flag4 == 1)break;
+          if(button(digitalRead(Button2),2))
+          {
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(x);
+            lcd.setCursor(8,0);
+            y= (y+1)%8;
+            lcd.print(y);
+            lcd.print(" <-");
+            //while(digitalRead(Button2));
+          }
+        }while(!button(digitalRead(Button1),1));
+        break;
+     default:
+      break;
   }
 }
+
 void receiveEvent(int howMany)
 {
   while (0 < Wire.available() )
   {
     char c = Wire.read();
+    if(c == '\r'){
+      Serial.println("It's your turn to play.");
+      flag = 1;//it's time for you to play
+      flag_judge = 0;//initialize the times of invalid inputs
+    }
     if(c == '\n')//receiving the position graph
     {
       i = Wire.read();//record the line number
@@ -336,7 +356,7 @@ void receiveEvent(int howMany)
           endgame();
         serial_monitor(pos);
         Serial.println("It's your turn to play.");
-        
+        Serial.flush();
       }
     }
   }
@@ -383,10 +403,11 @@ void buzz(int targetPin, long frequency, long length) {
 
 void serial_monitor(char pos[8][8])
 {
+  Serial.println(' ');
   Serial.print('*');
     for(i=0;i<8;i++)
     {
-      Serial.print("  ");
+      Serial.print(' ');
       Serial.print(i);
     }
     Serial.println(' ');
@@ -395,11 +416,12 @@ void serial_monitor(char pos[8][8])
         Serial.print(i);
         for(j=0;j<8;j++)
         {
-          Serial.print("  ");
+          Serial.print(' ');
           Serial.print(pos[i][j]);
         }
         Serial.println(' ');
       }
+      /*
     Serial.println(' ');
     Serial.println(' ');
     Serial.println(' ');
@@ -408,10 +430,16 @@ void serial_monitor(char pos[8][8])
     Serial.print("O  ");
     Serial.println(count_o());
     Serial.println(' ');
+    */
 }
 
 void transmit(void)
 {
+  if(flag4 == 1){
+    Wire.beginTransmission(8);
+    Wire.write('\r');
+    Wire.endTransmission();
+  }else{
   for(i=0;i<10;i++)
         {
           Wire.beginTransmission(8);
@@ -429,6 +457,7 @@ void transmit(void)
           Wire.endTransmission();
         }
    chess++;
+  }
 }
 
 int operation(void)
@@ -653,11 +682,12 @@ void endgame(void)
     Serial.println("Win!!!");
     sing(melody1,tempo1);
   }
-  else if(count_x() < count_o())
+  else if(count_x() < count_o()){
     Serial.println("Lose!!!");
+  }
   else
     Serial.println("Draw!!!");
-  Serial.end();
+  //Serial.end();
 }
 
 void SetClock()
@@ -683,10 +713,16 @@ ISR(TIMER1_OVF_vect)
   if(flag)
   {
   count1=count1-1;
+  if(count1==-1)
+  {
+  flag=1-flag;
+  flag4=1;
+  //transmit();
+  }
   }
   else
   {
-  count2=count2-1;
+    
   }
   if(flag_buzzer == flag)
   {
@@ -694,6 +730,7 @@ ISR(TIMER1_OVF_vect)
   }
   else
   {
+    count1=50;
     digitalWrite(speakerOut1,HIGH);
     flag3=1;
     flag_buzzer = flag;
@@ -708,12 +745,12 @@ void LCDupdate(){
   lcd.print(x);
   lcd.setCursor(8,0);
   lcd.print(y);
+  //if(flag)
+  //{
   lcd.setCursor(0,1);
   lcd.print("X: ");
   lcd.print(count1);
-  lcd.setCursor(8, 1);
-  lcd.print("O: ");
-  lcd.print(count2);
+
 }
 
 int button(bool state, int order){
